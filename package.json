@@ -1,14 +1,15 @@
 {
-  "name": "bd-nube",
+  "name": "ksf-nb",
   "version": "1.0.0",
+  "description": "Base de datos en la nube con login, clientes y pagos",
   "main": "server.js",
-  "scripts": { "start": "node server.js" },
- "dependencies": {
-  "sqlite3": "^5.1.6",
-  "express": "^4.18.2",
-  "cors": "^2.8.5",
-  "body-parser": "^1.20.2"
-}
-
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "sqlite3": "^5.1.6",
+    "body-parser": "^1.20.2",
+    "cors": "^2.8.5"
   }
 }
