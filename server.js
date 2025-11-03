@@ -1,37 +1,45 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
+const path = require('path');
 const db = require('./db');
+
 const app = express();
 
+// Middlewares
 app.use(cors());
 app.use(bodyParser.json());
-app.use(express.static('public'));
+app.use(express.static('public')); // Servir archivos estáticos desde /public
 
+// 🧾 Función de auditoría
 function auditLog(user_id, action, detail) {
   db.prepare('INSERT INTO audit (user_id, action, detail) VALUES (?,?,?)')
     .run(user_id || null, action, detail || null);
 }
 
-// LOGIN
+// 🧍 Login de usuario
 app.post('/api/login', (req, res) => {
   const { name } = req.body;
   if (!name) return res.status(400).json({ error: 'Nombre requerido' });
-  const get = db.prepare('SELECT * FROM users WHERE name = ?');
+
+  const get = db.prepare('SELECT * FROM users WHERE name=?');
   let user = get.get(name);
+
   if (!user) {
     const ins = db.prepare('INSERT INTO users (name) VALUES (?)');
     const info = ins.run(name);
     user = { id: info.lastInsertRowid, name };
   }
+
   auditLog(user.id, 'login', `Usuario ${name} inició sesión`);
   res.json({ user });
 });
 
-// CLIENTES
-app.get('/api/clients', (req, res) =>
-  res.json(db.prepare('SELECT * FROM clients ORDER BY id DESC').all())
-);
+// 👥 Clientes
+app.get('/api/clients', (req, res) => {
+  const data = db.prepare('SELECT * FROM clients ORDER BY id DESC').all();
+  res.json(data);
+});
 
 app.post('/api/clients', (req, res) => {
   const { name, phone, email, address, userId } = req.body;
@@ -41,17 +49,16 @@ app.post('/api/clients', (req, res) => {
   res.json({ id: info.lastInsertRowid });
 });
 
-// PAGOS
-app.get('/api/payments', (req, res) =>
-  res.json(
-    db.prepare(`
-      SELECT p.*, c.name AS client_name 
-      FROM payments p 
-      LEFT JOIN clients c ON c.id = p.client_id 
-      ORDER BY p.id DESC
-    `).all()
-  )
-);
+// 💰 Pagos
+app.get('/api/payments', (req, res) => {
+  const data = db.prepare(`
+    SELECT p.*, c.name as client_name
+    FROM payments p
+    LEFT JOIN clients c ON p.client_id = c.id
+    ORDER BY p.id DESC
+  `).all();
+  res.json(data);
+});
 
 app.post('/api/payments', (req, res) => {
   const { client_id, amount, date, note, userId } = req.body;
@@ -61,18 +68,23 @@ app.post('/api/payments', (req, res) => {
   res.json({ id: info.lastInsertRowid });
 });
 
-// AUDITORÍA
-app.get('/api/audit', (req, res) =>
-  res.json(
-    db.prepare(`
-      SELECT a.*, u.name AS user_name 
-      FROM audit a 
-      LEFT JOIN users u ON u.id = a.user_id 
-      ORDER BY a.id DESC 
-      LIMIT 200
-    `).all()
-  )
-);
+// 📜 Auditoría
+app.get('/api/audit', (req, res) => {
+  const data = db.prepare(`
+    SELECT a.*, u.name as user_name
+    FROM audit a
+    LEFT JOIN users u ON a.user_id = u.id
+    ORDER BY a.id DESC
+    LIMIT 200
+  `).all();
+  res.json(data);
+});
 
+// 🌐 Servir el archivo index.html
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// 🚀 Puerto dinámico (Render asigna uno automáticamente)
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log('Server running on ' + PORT));
